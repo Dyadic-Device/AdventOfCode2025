@@ -49,6 +49,11 @@ class machine {
     }
   }
 
+  [bool] JoltageTest( [int[]] $PressedButtons) {
+
+    return $false
+  }
+
 }
 
 class button {
