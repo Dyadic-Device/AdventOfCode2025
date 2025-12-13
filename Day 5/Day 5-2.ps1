@@ -20,28 +20,57 @@ $in | ForEach-Object {
             $split = $raw.Split('-')
             $ranges += ,@($split[0], $split[1])
             Write-Host "Added $($split[0])-$($split[1]) to ranges."
-
-            # Also, check for min/max:
-            if ([long]$min -eq 0 -or [long]$split[0] -lt $min) {
-                $min = [long]$split[0]
-            }
-            if ([long]$split[1] -gt $max) {
-                $max = [long]$split[1]
-            }
         }
         else {
             $parseRange = $false
         }
     }
-
     #Otherwise, move on
     else {
        return
     }
 }
-Write-Host "Min $min / Max $max"
-# After all ranges are collected,
- 
+
+$collateranges += $ranges[0]
+# After all ranges are collected, collate them
+$ranges[1..$($ranges.Length - 1)] | ForEach-Object {
+    Write-Host "Current Range = $_; Collated Ranges = $collateranges"
+    # Grab the current range
+    $workingRange = $_
+    $expandmin = $false
+    $expandmax = $false
+
+    # Go through collated ranges and see if there is any overlap. If so, expand it. 
+    $collateRanges | ForEach-Object {
+        if ($workingRange[0] -gt $_[0] -and $workingRange[0] -lt $_[1] -and $workingRange[1] -gt $_[1]) {
+            Write-Host "Pre-expand: $_"
+            $expandmax = $true
+            $_[1] = $workingRange[1]
+            Write-Host "Post-expand: $_"
+        }
+        if ($workingRange[1] -gt $_[0] -and $workingRange[1] -lt $_[1] -and $workingRange[0] -lt $_[0]) {
+            Write-Host "Pre-expand: $_"
+            $expandmin = $true
+            $_[0] = $workingRange[0]
+            Write-Host "Post-Expand: $_"
+        }
+    }
+
+    if (-not $expandmin -and -not $expandmin) {
+        $collateRanges += $workingRange
+    }
+}
+
+Write-Host $collateranges
+
+$ids = 0
+$collateRanges | ForEach-Object {
+    $ids += ($_[1] - $_[0] + 1)
+}
+
+Write-Host $ids
+
+<#
 $ranges | ForEach-Object {
     $num1 = [long]$_[0]
     $num2 = [long]$_[1]
@@ -49,12 +78,13 @@ $ranges | ForEach-Object {
     while ($inc -le $num2) {
         if ($fresh -notcontains $inc) {
             $fresh += $inc
+            Write-Host "Ingredient ID $inc added."
         }
         $inc++
     } 
 }
 Write-Host "Total of $($fresh.Length) ingredient IDs are fresh."
-
+#>
 
 <#
 $inc = [long]$min
